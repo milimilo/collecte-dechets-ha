@@ -52,36 +52,6 @@ Le code est hébergé sur `https://github.com/milimilo/collecte-dechets-ha`.
 Copiez le dossier `custom_components/dechets_verts_rueil/` dans le dossier
 `config/custom_components/` de votre Home Assistant, puis redémarrez.
 
-## Exemple de notification (la veille au soir)
-
-```yaml
-automation:
-  - alias: "Rappel collecte déchets"
-    trigger:
-      - platform: time
-        at: "19:00:00"
-    action:
-      - variables:
-          capteurs:
-            - sensor.rueil_malmaison_dechets_verts
-            - sensor.rueil_malmaison_ordures_menageres
-            - sensor.rueil_malmaison_emballages
-            - sensor.rueil_malmaison_encombrants
-            - sensor.rueil_malmaison_verre
-      - repeat:
-          for_each: "{{ capteurs }}"
-          sequence:
-            - condition: template
-              value_template: "{{ state_attr(repeat.item, 'jours_avant') == 1 }}"
-            - service: notify.notify
-              data:
-                title: "🗑️ Collecte demain"
-                message: >
-                  {{ state_attr(repeat.item, 'jour') }} :
-                  {{ repeat.item.split('.')[1].split('_')[2:] | join(' ') }}
-                  ({{ state_attr(repeat.item, 'moment') }}).
-```
-
 ## Notes
 
 - Couvre uniquement Rueil-Malmaison (jeux de données de SIREN `219200631`).
