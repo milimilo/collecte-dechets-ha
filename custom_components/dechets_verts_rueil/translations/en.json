@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Rueil-Malmaison garden waste",
+        "description": "Enter your address to determine your collection sector.",
+        "data": {
+          "address": "Address"
+        }
+      }
+    },
+    "error": {
+      "geocode_error": "Could not geocode the address. Please try again.",
+      "address_not_found": "Address not found. Add the street and city.",
+      "api_error": "The Hauts-de-Seine API is unreachable. Try again later.",
+      "outside_zone": "This address is not within any known collection sector."
+    },
+    "abort": {
+      "already_configured": "This address is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "prochaine_collecte": { "name": "Next collection" },
+      "jours_avant": { "name": "Days until collection" }
+    },
+    "calendar": {
+      "collecte": { "name": "Garden waste collection" }
+    }
+  }
+}

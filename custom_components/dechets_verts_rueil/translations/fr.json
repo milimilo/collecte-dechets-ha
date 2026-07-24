@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Déchets verts Rueil-Malmaison",
+        "description": "Saisissez votre adresse pour déterminer votre secteur de collecte.",
+        "data": {
+          "address": "Adresse"
+        }
+      }
+    },
+    "error": {
+      "geocode_error": "Impossible de géocoder l'adresse. Réessayez.",
+      "address_not_found": "Adresse introuvable. Précisez la rue et la ville.",
+      "api_error": "L'API des Hauts-de-Seine est injoignable. Réessayez plus tard.",
+      "outside_zone": "Cette adresse ne se trouve dans aucun secteur de collecte connu."
+    },
+    "abort": {
+      "already_configured": "Cette adresse est déjà configurée."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "prochaine_collecte": { "name": "Prochaine collecte" },
+      "jours_avant": { "name": "Jours avant collecte" }
+    },
+    "calendar": {
+      "collecte": { "name": "Collecte des déchets verts" }
+    }
+  }
+}
