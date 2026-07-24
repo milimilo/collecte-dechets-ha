@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Déchets verts Rueil-Malmaison",
-        "description": "Saisissez votre adresse pour déterminer votre secteur de collecte.",
+        "title": "Collecte des déchets Rueil-Malmaison",
+        "description": "Saisissez votre adresse pour déterminer vos jours de collecte.",
         "data": {
           "address": "Adresse"
         }
@@ -17,15 +17,6 @@
     },
     "abort": {
       "already_configured": "Cette adresse est déjà configurée."
-    }
-  },
-  "entity": {
-    "sensor": {
-      "prochaine_collecte": { "name": "Prochaine collecte" },
-      "jours_avant": { "name": "Jours avant collecte" }
-    },
-    "calendar": {
-      "collecte": { "name": "Collecte des déchets verts" }
     }
   }
 }

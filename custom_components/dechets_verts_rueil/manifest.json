@@ -1,6 +1,6 @@
 {
   "domain": "dechets_verts_rueil",
-  "name": "Déchets verts Rueil-Malmaison",
+  "name": "Collecte des déchets Rueil-Malmaison",
   "version": "1.0.0",
   "config_flow": true,
   "documentation": "https://github.com/milimilo/ha-dechets-verts-rueil",

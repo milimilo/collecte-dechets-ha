@@ -165,50 +165,80 @@ def is_collection(jours: str | None) -> bool:
     return jours.strip().lower() not in NO_COLLECTION
 
 
+def parse_days(jours: str | None) -> list[int]:
+    """Convertit « Lundi, Mercredi, Vendredi » en [0, 2, 4] (lundi=0)."""
+    if not is_collection(jours):
+        return []
+    out: set[int] = set()
+    for part in jours.split(","):
+        weekday = WEEKDAYS.get(part.strip().lower())
+        if weekday is not None:
+            out.add(weekday)
+    return sorted(out)
+
+
+def _week_matches(day: date, frequenc: str | None) -> bool:
+    """Gère « Semaine paire » / « Semaine impaire » via le n° de semaine ISO."""
+    if not frequenc:
+        return True
+    freq = frequenc.strip().lower()
+    if "impaire" in freq:
+        return day.isocalendar()[1] % 2 == 1
+    if "paire" in freq:
+        return day.isocalendar()[1] % 2 == 0
+    return True  # « Toutes les semaines » ou valeur inconnue
+
+
+def _matches(day: date, days: list[int], frequenc, bounds) -> bool:
+    return (
+        day.weekday() in days
+        and _in_season(day, bounds)
+        and _week_matches(day, frequenc)
+    )
+
+
 def next_dates(
     jours: str | None,
+    frequenc: str | None,
     perioann: str | None,
     count: int,
     from_date: date | None = None,
 ) -> list[date]:
     """Prochaines dates de collecte à partir de from_date (inclus)."""
-    if not is_collection(jours):
-        return []
-    weekday = WEEKDAYS.get(jours.strip().lower())
-    if weekday is None:
+    days = parse_days(jours)
+    if not days:
         return []
     if from_date is None:
         from_date = date.today()
     bounds = parse_perioann(perioann)
 
-    day = from_date + timedelta(days=(weekday - from_date.weekday()) % 7)
     results: list[date] = []
+    day = from_date
     guard = 0
-    while len(results) < count and guard < 300:
-        if _in_season(day, bounds):
+    while len(results) < count and guard < 800:
+        if _matches(day, days, frequenc, bounds):
             results.append(day)
-        day += timedelta(days=7)
+        day += timedelta(days=1)
         guard += 1
     return results
 
 
 def dates_in_range(
     jours: str | None,
+    frequenc: str | None,
     perioann: str | None,
     start_date: date,
     end_date: date,
 ) -> list[date]:
     """Toutes les dates de collecte comprises dans [start_date, end_date]."""
-    if not is_collection(jours):
-        return []
-    weekday = WEEKDAYS.get(jours.strip().lower())
-    if weekday is None:
+    days = parse_days(jours)
+    if not days:
         return []
     bounds = parse_perioann(perioann)
-    day = start_date + timedelta(days=(weekday - start_date.weekday()) % 7)
     out: list[date] = []
+    day = start_date
     while day <= end_date:
-        if _in_season(day, bounds):
+        if _matches(day, days, frequenc, bounds):
             out.append(day)
-        day += timedelta(days=7)
+        day += timedelta(days=1)
     return out

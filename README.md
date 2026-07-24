@@ -1,42 +1,51 @@
-# Déchets verts Rueil-Malmaison — intégration Home Assistant
+# Collecte des déchets Rueil-Malmaison — intégration Home Assistant
 
-Affiche les **prochaines collectes de déchets végétaux** selon votre secteur
-d'habitation à Rueil-Malmaison (92).
+Affiche les **prochaines collectes de déchets** selon votre adresse à
+Rueil-Malmaison (92), pour les 5 flux collectés en porte-à-porte.
 
-Les données proviennent de l'[open data du Département des Hauts-de-Seine](https://opendata.hauts-de-seine.fr/explore/dataset/fr-219200631-collecte-des-dechets-vegetaux/).
+Les données proviennent de l'[open data du Département des Hauts-de-Seine](https://opendata.hauts-de-seine.fr/).
 Vous saisissez votre adresse une seule fois à la configuration : l'intégration
-la géocode (Base Adresse Nationale), détermine dans quel secteur de collecte
-elle tombe, puis calcule les prochaines dates.
+la géocode (Base Adresse Nationale), détermine dans quel secteur elle tombe pour
+chaque flux, puis calcule les prochaines dates.
+
+## Flux pris en charge
+
+| Flux | Jeu de données | Particularité gérée |
+|------|----------------|---------------------|
+| Déchets verts | `collecte-des-dechets-vegetaux` | saison mars → mi-décembre |
+| Ordures ménagères | `collecte-des-ordures-menageres` | plusieurs jours/semaine |
+| Emballages | `collecte-des-emballages` | hebdomadaire |
+| Encombrants | `encombrant` | semaine paire / impaire |
+| Verre | `collecte-du-verre` | semaine paire / impaire |
 
 ## Ce que ça crée
 
-Un appareil « Déchets verts » avec :
+Un appareil **« Rueil-Malmaison »** regroupant :
 
-| Entité | Type | Contenu |
-|--------|------|---------|
-| `sensor.dechets_verts_prochaine_collecte` | date | Date de la prochaine collecte. Attributs : jour, fréquence, période, prochaines dates… |
-| `sensor.dechets_verts_jours_avant_collecte` | nombre | Nombre de jours restants |
-| `calendar.dechets_verts_collecte_des_dechets_verts` | calendrier | Toutes les collectes à venir |
+- **5 capteurs** `sensor.rueil_malmaison_*` (un par flux), de type *date*, indiquant
+  la prochaine collecte. Attributs : `jour`, `frequence`, `periode`, `moment`
+  (Matin/Soir), `jours_avant`, `prochaines_collectes` (6 prochaines dates).
+- **1 calendrier** `calendar.rueil_malmaison_collectes` regroupant toutes les
+  collectes à venir, tous flux confondus.
 
 ## Installation via HACS
 
 ### 1. Publier le dépôt (une fois)
 
-HACS installe depuis un dépôt GitHub. Le code est hébergé sur
-`https://github.com/milimilo/ha-dechets-verts-rueil`.
+Le code est hébergé sur `https://github.com/milimilo/ha-dechets-verts-rueil`.
 
 ### 2. Ajouter le dépôt personnalisé dans HACS
 
 1. HACS → menu ⋮ en haut à droite → **Dépôts personnalisés**
 2. URL : `https://github.com/milimilo/ha-dechets-verts-rueil`
 3. Type : **Intégration** → **Ajouter**
-4. Cherchez « Déchets verts Rueil-Malmaison » dans HACS → **Télécharger**
+4. Cherchez « Collecte des déchets Rueil-Malmaison » → **Télécharger**
 5. **Redémarrez Home Assistant**
 
 ### 3. Configurer
 
 **Paramètres → Appareils et services → Ajouter une intégration** →
-« Déchets verts Rueil-Malmaison » → saisissez votre adresse.
+« Collecte des déchets Rueil-Malmaison » → saisissez votre adresse.
 
 ## Installation manuelle (sans HACS)
 
@@ -47,25 +56,36 @@ Copiez le dossier `custom_components/dechets_verts_rueil/` dans le dossier
 
 ```yaml
 automation:
-  - alias: "Rappel déchets verts"
+  - alias: "Rappel collecte déchets"
     trigger:
       - platform: time
         at: "19:00:00"
-    condition:
-      - condition: template
-        value_template: "{{ state_attr('sensor.dechets_verts_prochaine_collecte','jours_avant') == 1 }}"
     action:
-      - service: notify.notify
-        data:
-          title: "🌿 Déchets verts demain"
-          message: >
-            Collecte demain matin. Pensez à sortir le bac ce soir.
+      - variables:
+          capteurs:
+            - sensor.rueil_malmaison_dechets_verts
+            - sensor.rueil_malmaison_ordures_menageres
+            - sensor.rueil_malmaison_emballages
+            - sensor.rueil_malmaison_encombrants
+            - sensor.rueil_malmaison_verre
+      - repeat:
+          for_each: "{{ capteurs }}"
+          sequence:
+            - condition: template
+              value_template: "{{ state_attr(repeat.item, 'jours_avant') == 1 }}"
+            - service: notify.notify
+              data:
+                title: "🗑️ Collecte demain"
+                message: >
+                  {{ state_attr(repeat.item, 'jour') }} :
+                  {{ repeat.item.split('.')[1].split('_')[2:] | join(' ') }}
+                  ({{ state_attr(repeat.item, 'moment') }}).
 ```
 
 ## Notes
 
-- Couvre uniquement Rueil-Malmaison (jeu de données `fr-219200631`), découpé en
-  4 secteurs (2 avec collecte hebdomadaire, 2 sans).
+- Couvre uniquement Rueil-Malmaison (jeux de données de SIREN `219200631`).
 - Rafraîchissement toutes les 12 h ; aucune clé API requise.
-- La saison de collecte va de début mars à mi-décembre : hors de cette période,
-  les capteurs pointent automatiquement vers la première collecte de l'année suivante.
+- « Moment = Soir » signifie collecte le soir même : sortez le bac dans l'après-midi.
+- Hors saison, le capteur des déchets verts pointe automatiquement vers la
+  première collecte de l'année suivante.

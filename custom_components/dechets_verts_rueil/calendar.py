@@ -1,4 +1,4 @@
-"""Entité calendrier : affiche les collectes à venir dans le calendrier HA."""
+"""Calendrier unique regroupant les collectes de tous les flux."""
 
 from __future__ import annotations
 
@@ -12,13 +12,16 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, MANUFACTURER
+from .const import DEVICE_NAME, DOMAIN, FLOWS, MANUFACTURER
 from .coordinator import DechetsVertsCoordinator
 from .helpers import dates_in_range
 
-# La collecte a lieu le matin : on crée un créneau 8 h – 12 h.
-EVENT_START_HOUR = 8
-EVENT_END_HOUR = 12
+# Collecte le matin ou le soir : on pose un créneau indicatif.
+SLOTS = {
+    "matin": (7, 11),
+    "soir": (18, 21),
+}
+DEFAULT_SLOT = (7, 11)
 
 
 async def async_setup_entry(
@@ -31,10 +34,10 @@ async def async_setup_entry(
 
 
 class CollecteCalendar(CoordinatorEntity[DechetsVertsCoordinator], CalendarEntity):
-    """Calendrier des collectes de déchets verts."""
+    """Calendrier de toutes les collectes de déchets."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "collecte"
+    _attr_name = "Collectes"
     _attr_icon = "mdi:calendar-check"
 
     def __init__(
@@ -44,36 +47,58 @@ class CollecteCalendar(CoordinatorEntity[DechetsVertsCoordinator], CalendarEntit
         self._attr_unique_id = f"{entry.entry_id}_calendar"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Déchets verts",
+            name=DEVICE_NAME,
             manufacturer=MANUFACTURER,
-            model="Collecte des déchets végétaux",
+            model="Collecte des déchets",
         )
 
-    def _make_event(self, day) -> CalendarEvent:
-        start = dt_util.start_of_local_day(day) + timedelta(hours=EVENT_START_HOUR)
-        end = dt_util.start_of_local_day(day) + timedelta(hours=EVENT_END_HOUR)
+    def _make_event(self, day, label: str, moment: str | None) -> CalendarEvent:
+        slot = SLOTS.get((moment or "").strip().lower(), DEFAULT_SLOT)
+        base = dt_util.start_of_local_day(day)
         return CalendarEvent(
-            start=start,
-            end=end,
-            summary="Collecte des déchets verts",
-            description="Sortir les déchets végétaux la veille au soir ou tôt le matin.",
+            start=base + timedelta(hours=slot[0]),
+            end=base + timedelta(hours=slot[1]),
+            summary=f"Collecte : {label}",
+            description=(
+                f"Collecte {label.lower()} le {moment.lower() if moment else 'matin'}."
+            ),
         )
+
+    def _next_event_for(self, key: str, flow: dict) -> CalendarEvent | None:
+        upcoming = flow.get("prochaines") or []
+        if not upcoming:
+            return None
+        return self._make_event(upcoming[0], FLOWS[key]["label"], flow.get("moment"))
 
     @property
     def event(self) -> CalendarEvent | None:
-        upcoming = (self.coordinator.data or {}).get("prochaines") or []
-        return self._make_event(upcoming[0]) if upcoming else None
+        flows = (self.coordinator.data or {}).get("flows") or {}
+        candidates = [
+            ev
+            for key, flow in flows.items()
+            if (ev := self._next_event_for(key, flow)) is not None
+        ]
+        if not candidates:
+            return None
+        return min(candidates, key=lambda ev: ev.start)
 
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
     ) -> list[CalendarEvent]:
-        data = self.coordinator.data or {}
-        if not data.get("collecte"):
-            return []
-        days = dates_in_range(
-            data.get("jours"),
-            data.get("periode"),
-            start_date.date(),
-            end_date.date(),
-        )
-        return [self._make_event(day) for day in days]
+        flows = (self.coordinator.data or {}).get("flows") or {}
+        events: list[CalendarEvent] = []
+        for key, flow in flows.items():
+            if not flow.get("collecte"):
+                continue
+            days = dates_in_range(
+                flow.get("jours"),
+                flow.get("frequence"),
+                flow.get("periode"),
+                start_date.date(),
+                end_date.date(),
+            )
+            label = FLOWS[key]["label"]
+            moment = flow.get("moment")
+            events.extend(self._make_event(day, label, moment) for day in days)
+        events.sort(key=lambda ev: ev.start)
+        return events

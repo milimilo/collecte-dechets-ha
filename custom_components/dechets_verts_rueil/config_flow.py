@@ -15,6 +15,7 @@ from .const import (
     DATASET_URL,
     DOMAIN,
     GEOCODE_URL,
+    VALIDATION_DATASET,
 )
 from .helpers import get_geometry, point_in_geometry
 
@@ -55,8 +56,8 @@ class DechetsVertsConfigFlow(ConfigFlow, domain=DOMAIN):
                     # 2) Vérifie que l'adresse tombe dans un secteur de collecte
                     try:
                         async with session.get(
-                            DATASET_URL,
-                            params={"limit": 100, "select": "jours,geo_shape"},
+                            DATASET_URL.format(dataset=VALIDATION_DATASET),
+                            params={"limit": 100, "select": "geo_shape"},
                             timeout=aiohttp.ClientTimeout(total=30),
                         ) as resp:
                             resp.raise_for_status()

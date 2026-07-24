@@ -1,4 +1,4 @@
-"""Capteurs : prochaine collecte et nombre de jours avant."""
+"""Un capteur « prochaine collecte » par flux."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, MANUFACTURER
+from .const import DEVICE_NAME, DOMAIN, FLOWS, MANUFACTURER
 from .coordinator import DechetsVertsCoordinator
 
 
@@ -23,44 +23,50 @@ async def async_setup_entry(
 ) -> None:
     coordinator: DechetsVertsCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
-        [
-            ProchaineCollecteSensor(coordinator, entry),
-            JoursAvantSensor(coordinator, entry),
-        ]
+        ProchaineCollecteSensor(coordinator, entry, key, cfg)
+        for key, cfg in FLOWS.items()
     )
 
 
-class _BaseSensor(CoordinatorEntity[DechetsVertsCoordinator], SensorEntity):
+class ProchaineCollecteSensor(
+    CoordinatorEntity[DechetsVertsCoordinator], SensorEntity
+):
+    """Date de la prochaine collecte pour un flux donné."""
+
     _attr_has_entity_name = True
+    _attr_device_class = SensorDeviceClass.DATE
 
     def __init__(
-        self, coordinator: DechetsVertsCoordinator, entry: ConfigEntry
+        self,
+        coordinator: DechetsVertsCoordinator,
+        entry: ConfigEntry,
+        key: str,
+        cfg: dict[str, str],
     ) -> None:
         super().__init__(coordinator)
-        self._entry = entry
+        self._key = key
+        self._attr_name = cfg["label"]
+        self._attr_icon = cfg["icon"]
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Déchets verts",
+            name=DEVICE_NAME,
             manufacturer=MANUFACTURER,
-            model="Collecte des déchets végétaux",
+            model="Collecte des déchets",
             configuration_url="https://opendata.hauts-de-seine.fr/",
         )
 
     @property
+    def _flow(self) -> dict:
+        return ((self.coordinator.data or {}).get("flows") or {}).get(self._key, {})
+
+    @property
     def _upcoming(self) -> list[date]:
-        return (self.coordinator.data or {}).get("prochaines") or []
+        return self._flow.get("prochaines") or []
 
-
-class ProchaineCollecteSensor(_BaseSensor):
-    """Date de la prochaine collecte."""
-
-    _attr_translation_key = "prochaine_collecte"
-    _attr_icon = "mdi:leaf"
-    _attr_device_class = SensorDeviceClass.DATE
-
-    def __init__(self, coordinator, entry) -> None:
-        super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_prochaine_collecte"
+    @property
+    def available(self) -> bool:
+        return super().available and self._flow.get("available", False)
 
     @property
     def native_value(self) -> date | None:
@@ -69,35 +75,16 @@ class ProchaineCollecteSensor(_BaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        data = self.coordinator.data or {}
+        flow = self._flow
         upcoming = self._upcoming
         today = dt_util.now().date()
         return {
-            "secteur_avec_collecte": data.get("collecte", False),
-            "jour": data.get("jours"),
-            "frequence": data.get("frequence"),
-            "periode": data.get("periode"),
-            "moment": data.get("moment"),
-            "adresse": data.get("adresse"),
+            "collecte": flow.get("collecte", False),
+            "jour": flow.get("jours"),
+            "frequence": flow.get("frequence"),
+            "periode": flow.get("periode"),
+            "moment": flow.get("moment"),
+            "adresse": (self.coordinator.data or {}).get("adresse"),
             "jours_avant": (upcoming[0] - today).days if upcoming else None,
             "prochaines_collectes": [d.isoformat() for d in upcoming],
         }
-
-
-class JoursAvantSensor(_BaseSensor):
-    """Nombre de jours avant la prochaine collecte."""
-
-    _attr_translation_key = "jours_avant"
-    _attr_icon = "mdi:calendar-clock"
-    _attr_native_unit_of_measurement = "j"
-
-    def __init__(self, coordinator, entry) -> None:
-        super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_jours_avant"
-
-    @property
-    def native_value(self) -> int | None:
-        upcoming = self._upcoming
-        if not upcoming:
-            return None
-        return (upcoming[0] - dt_util.now().date()).days

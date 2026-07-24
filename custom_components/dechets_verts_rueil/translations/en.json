@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rueil-Malmaison garden waste",
-        "description": "Enter your address to determine your collection sector.",
+        "title": "Rueil-Malmaison waste collection",
+        "description": "Enter your address to determine your collection days.",
         "data": {
           "address": "Address"
         }
@@ -17,15 +17,6 @@
     },
     "abort": {
       "already_configured": "This address is already configured."
-    }
-  },
-  "entity": {
-    "sensor": {
-      "prochaine_collecte": { "name": "Next collection" },
-      "jours_avant": { "name": "Days until collection" }
-    },
-    "calendar": {
-      "collecte": { "name": "Garden waste collection" }
     }
   }
 }

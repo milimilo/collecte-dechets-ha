@@ -1,7 +1,8 @@
-"""Coordinateur : récupère les données de l'API et détermine le secteur."""
+"""Coordinateur : interroge les 5 flux de l'API et détermine le secteur."""
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 
@@ -13,7 +14,14 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_ADDRESS, CONF_LAT, CONF_LON, DATASET_URL, DOMAIN
+from .const import (
+    CONF_ADDRESS,
+    CONF_LAT,
+    CONF_LON,
+    DATASET_URL,
+    DOMAIN,
+    FLOWS,
+)
 from .helpers import get_geometry, is_collection, next_dates, point_in_geometry
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,22 +43,20 @@ class DechetsVertsCoordinator(DataUpdateCoordinator):
         self.lon: float = entry.data[CONF_LON]
         self.address: str = entry.data[CONF_ADDRESS]
 
-    async def _async_update_data(self) -> dict:
-        session = async_get_clientsession(self.hass)
+    async def _fetch_flow(
+        self, session: aiohttp.ClientSession, key: str, dataset: str
+    ) -> dict:
+        """Récupère un flux et calcule ses prochaines collectes pour l'adresse."""
+        url = DATASET_URL.format(dataset=dataset)
         params = {
             "limit": 100,
             "select": "jours,frequenc,perioann,periojou,geo_shape",
         }
-        try:
-            async with session.get(
-                DATASET_URL,
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=30),
-            ) as resp:
-                resp.raise_for_status()
-                data = await resp.json()
-        except Exception as err:  # noqa: BLE001
-            raise UpdateFailed(f"Erreur API Hauts-de-Seine : {err}") from err
+        async with session.get(
+            url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+        ) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
 
         zone = None
         for record in data.get("results", []):
@@ -60,25 +66,49 @@ class DechetsVertsCoordinator(DataUpdateCoordinator):
                 break
 
         if zone is None:
-            return {
-                "found": False,
-                "adresse": self.address,
-                "collecte": False,
-                "prochaines": [],
-            }
+            return {"available": True, "collecte": False, "prochaines": []}
 
         jours = zone.get("jours")
+        frequence = zone.get("frequenc")
+        periode = zone.get("perioann")
         collecte = is_collection(jours)
         today = dt_util.now().date()
-        upcoming = next_dates(jours, zone.get("perioann"), 6, today) if collecte else []
-
+        upcoming = (
+            next_dates(jours, frequence, periode, 6, today) if collecte else []
+        )
         return {
-            "found": True,
+            "available": True,
             "collecte": collecte,
             "jours": jours,
-            "frequence": zone.get("frequenc"),
-            "periode": zone.get("perioann"),
+            "frequence": frequence,
+            "periode": periode,
             "moment": zone.get("periojou"),
-            "adresse": self.address,
             "prochaines": upcoming,
         }
+
+    async def _async_update_data(self) -> dict:
+        session = async_get_clientsession(self.hass)
+        results = await asyncio.gather(
+            *(
+                self._fetch_flow(session, key, cfg["dataset"])
+                for key, cfg in FLOWS.items()
+            ),
+            return_exceptions=True,
+        )
+
+        flows: dict[str, dict] = {}
+        previous = (self.data or {}).get("flows", {})
+        failures = 0
+        for key, result in zip(FLOWS, results):
+            if isinstance(result, Exception):
+                failures += 1
+                _LOGGER.warning("Flux %s indisponible : %s", key, result)
+                # Conserve la dernière valeur connue si elle existe
+                flows[key] = previous.get(key, {"available": False, "prochaines": []})
+            else:
+                flows[key] = result
+
+        if failures == len(FLOWS):
+            raise UpdateFailed("Aucun flux joignable sur l'API des Hauts-de-Seine")
+
+        return {"adresse": self.address, "flows": flows}
