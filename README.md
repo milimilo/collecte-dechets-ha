@@ -32,12 +32,12 @@ Un appareil **« Rueil-Malmaison »** regroupant :
 
 ### 1. Publier le dépôt (une fois)
 
-Le code est hébergé sur `https://github.com/milimilo/ha-dechets-verts-rueil`.
+Le code est hébergé sur `https://github.com/milimilo/collecte-dechets-ha`.
 
 ### 2. Ajouter le dépôt personnalisé dans HACS
 
 1. HACS → menu ⋮ en haut à droite → **Dépôts personnalisés**
-2. URL : `https://github.com/milimilo/ha-dechets-verts-rueil`
+2. URL : `https://github.com/milimilo/collecte-dechets-ha`
 3. Type : **Intégration** → **Ajouter**
 4. Cherchez « Collecte des déchets Rueil-Malmaison » → **Télécharger**
 5. **Redémarrez Home Assistant**
