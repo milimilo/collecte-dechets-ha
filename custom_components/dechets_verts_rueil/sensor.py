@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DEVICE_NAME, DOMAIN, FLOWS, MANUFACTURER
 from .coordinator import DechetsVertsCoordinator
+from .helpers import relative_label
 
 
 async def async_setup_entry(
@@ -79,6 +80,7 @@ class ProchaineCollecteSensor(
         upcoming = self._upcoming
         today = dt_util.now().date()
         return {
+            "quand": relative_label(upcoming[0], today) if upcoming else "—",
             "collecte": flow.get("collecte", False),
             "jour": flow.get("jours"),
             "frequence": flow.get("frequence"),

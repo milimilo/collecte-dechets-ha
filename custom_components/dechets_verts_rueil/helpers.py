@@ -35,6 +35,39 @@ MONTHS = {
 
 NO_COLLECTION = ("pas de collecte", "", "aucune")
 
+FR_DAYS_ABBR = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
+FR_MONTHS_ABBR = [
+    "",
+    "janv.",
+    "févr.",
+    "mars",
+    "avr.",
+    "mai",
+    "juin",
+    "juil.",
+    "août",
+    "sept.",
+    "oct.",
+    "nov.",
+    "déc.",
+]
+
+
+def relative_label(day: "date | None", today: "date | None" = None) -> str:
+    """« Aujourd'hui » / « Demain » / « Après-demain », sinon « mar. 28 juil. »."""
+    if day is None:
+        return "—"
+    if today is None:
+        today = date.today()
+    delta = (day - today).days
+    if delta == 0:
+        return "Aujourd'hui"
+    if delta == 1:
+        return "Demain"
+    if delta == 2:
+        return "Après-demain"
+    return f"{FR_DAYS_ABBR[day.weekday()]} {day.day} {FR_MONTHS_ABBR[day.month]}"
+
 
 # --------------------------------------------------------------------------- #
 # Géométrie : point dans polygone (algorithme du lancer de rayon)
