@@ -15,7 +15,9 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.CALENDAR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Configure une entrée depuis l'interface."""
     coordinator = DechetsVertsCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
+    # Refresh non bloquant : les entités sont créées même si l'API ne répond
+    # pas au démarrage (elles apparaîtront « indisponible » puis se rempliront).
+    await coordinator.async_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
