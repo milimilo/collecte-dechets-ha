@@ -74,6 +74,8 @@ def relative_label(day: "date | None", today: "date | None" = None) -> str:
         return "Demain"
     if delta == 2:
         return "Après-demain"
+    if 3 <= delta <= 6:
+        return FR_DAYS[day.weekday()]
     return f"{FR_DAYS[day.weekday()]} {day.day} {FR_MONTHS[day.month]}"
 
 
