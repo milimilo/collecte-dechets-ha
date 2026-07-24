@@ -1,4 +1,4 @@
-"""Config flow : demande l'adresse et détermine le secteur de collecte."""
+"""Config flow : saisie d'adresse avec suggestions (Base Adresse Nationale)."""
 
 from __future__ import annotations
 
@@ -19,74 +19,141 @@ from .const import (
 )
 from .helpers import get_geometry, point_in_geometry
 
+# Code INSEE de Rueil-Malmaison : restreint les suggestions à la commune.
+RUEIL_CITYCODE = "92063"
+CONF_CHOICE = "choice"
 
-class DechetsVertsConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Gère la configuration via l'interface."""
+
+class CollecteDechetsConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Configuration en deux étapes : saisie puis confirmation de l'adresse."""
 
     VERSION = 1
+
+    _query: str = ""
+    _suggestions: dict[str, tuple[float, float]] = {}
+
+    async def _search(self, query: str) -> dict[str, tuple[float, float]]:
+        """Interroge la Base Adresse Nationale, restreinte à Rueil-Malmaison."""
+        session = async_get_clientsession(self.hass)
+        async with session.get(
+            GEOCODE_URL,
+            params={
+                "q": query,
+                "limit": 10,
+                "autocomplete": 1,
+                "citycode": RUEIL_CITYCODE,
+            },
+            timeout=aiohttp.ClientTimeout(total=20),
+        ) as resp:
+            resp.raise_for_status()
+            geo = await resp.json()
+
+        suggestions: dict[str, tuple[float, float]] = {}
+        for feat in geo.get("features") or []:
+            label = feat.get("properties", {}).get("label")
+            coords = feat.get("geometry", {}).get("coordinates")
+            if label and coords:
+                suggestions[label] = (coords[0], coords[1])
+        return suggestions
+
+    async def _in_collection_zone(self, lon: float, lat: float) -> bool:
+        """Vérifie que le point tombe dans un secteur de collecte de Rueil."""
+        session = async_get_clientsession(self.hass)
+        async with session.get(
+            DATASET_URL.format(dataset=VALIDATION_DATASET),
+            params={"limit": 100, "select": "geo_shape"},
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+        return any(
+            point_in_geometry(lon, lat, get_geometry(rec.get("geo_shape")))
+            for rec in data.get("results", [])
+        )
+
+    def _select_schema(self, query: str) -> vol.Schema:
+        labels = list(self._suggestions)
+        return vol.Schema(
+            {
+                vol.Required(CONF_ADDRESS, default=query): str,
+                vol.Required(CONF_CHOICE, default=labels[0]): vol.In(labels),
+            }
+        )
 
     async def async_step_user(
         self, user_input: dict | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
-
         if user_input is not None:
-            address = user_input[CONF_ADDRESS].strip()
-            session = async_get_clientsession(self.hass)
-
-            # 1) Géocodage via la Base Adresse Nationale
+            query = user_input[CONF_ADDRESS].strip()
             try:
-                async with session.get(
-                    GEOCODE_URL,
-                    params={"q": address, "limit": 1},
-                    timeout=aiohttp.ClientTimeout(total=20),
-                ) as resp:
-                    resp.raise_for_status()
-                    geo = await resp.json()
+                suggestions = await self._search(query)
             except Exception:  # noqa: BLE001
                 errors["base"] = "geocode_error"
             else:
-                features = geo.get("features") or []
-                if not features:
+                if not suggestions:
                     errors[CONF_ADDRESS] = "address_not_found"
                 else:
-                    lon, lat = features[0]["geometry"]["coordinates"]
-                    label = features[0]["properties"].get("label", address)
+                    self._query = query
+                    self._suggestions = suggestions
+                    return await self.async_step_select()
 
-                    # 2) Vérifie que l'adresse tombe dans un secteur de collecte
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): str}),
+            errors=errors,
+        )
+
+    async def async_step_select(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        field_query = self._query
+
+        if user_input is not None:
+            new_query = user_input[CONF_ADDRESS].strip()
+            field_query = new_query
+
+            if new_query.lower() != self._query.lower():
+                # Le champ a été modifié → on relance une recherche.
+                try:
+                    suggestions = await self._search(new_query)
+                except Exception:  # noqa: BLE001
+                    errors["base"] = "geocode_error"
+                else:
+                    if not suggestions:
+                        errors[CONF_ADDRESS] = "address_not_found"
+                    else:
+                        self._query = new_query
+                        self._suggestions = suggestions
+            else:
+                # Texte inchangé → on valide l'adresse choisie.
+                choice = user_input.get(CONF_CHOICE)
+                if choice not in self._suggestions:
+                    errors[CONF_CHOICE] = "address_not_found"
+                else:
+                    lon, lat = self._suggestions[choice]
                     try:
-                        async with session.get(
-                            DATASET_URL.format(dataset=VALIDATION_DATASET),
-                            params={"limit": 100, "select": "geo_shape"},
-                            timeout=aiohttp.ClientTimeout(total=30),
-                        ) as resp:
-                            resp.raise_for_status()
-                            data = await resp.json()
+                        in_zone = await self._in_collection_zone(lon, lat)
                     except Exception:  # noqa: BLE001
                         errors["base"] = "api_error"
                     else:
-                        in_zone = any(
-                            point_in_geometry(
-                                lon, lat, get_geometry(rec.get("geo_shape"))
-                            )
-                            for rec in data.get("results", [])
-                        )
                         if not in_zone:
-                            errors[CONF_ADDRESS] = "outside_zone"
+                            errors[CONF_CHOICE] = "outside_zone"
                         else:
                             await self.async_set_unique_id(f"{lat:.5f}_{lon:.5f}")
                             self._abort_if_unique_id_configured()
                             return self.async_create_entry(
-                                title=label,
+                                title=choice,
                                 data={
-                                    CONF_ADDRESS: label,
+                                    CONF_ADDRESS: choice,
                                     CONF_LAT: lat,
                                     CONF_LON: lon,
                                 },
                             )
 
         return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): str}),
+            step_id="select",
+            data_schema=self._select_schema(field_query),
             errors=errors,
         )

@@ -3,15 +3,23 @@
     "step": {
       "user": {
         "title": "Collecte des déchets Rueil-Malmaison",
-        "description": "Saisissez votre adresse pour déterminer vos jours de collecte.",
+        "description": "Saisissez votre adresse à Rueil-Malmaison (avec le numéro pour un résultat précis). Inutile d'indiquer la ville ou le code postal.",
         "data": {
           "address": "Adresse"
+        }
+      },
+      "select": {
+        "title": "Confirmez votre adresse",
+        "description": "Choisissez votre adresse dans la liste. Pour relancer une recherche, modifiez le champ Adresse puis validez.",
+        "data": {
+          "address": "Adresse",
+          "choice": "Adresse trouvée"
         }
       }
     },
     "error": {
-      "geocode_error": "Impossible de géocoder l'adresse. Réessayez.",
-      "address_not_found": "Adresse introuvable. Précisez la rue et la ville.",
+      "geocode_error": "Impossible de contacter le service d'adresses. Réessayez.",
+      "address_not_found": "Aucune adresse trouvée à Rueil pour cette saisie. Précisez la rue et le numéro.",
       "api_error": "L'API des Hauts-de-Seine est injoignable. Réessayez plus tard.",
       "outside_zone": "Cette adresse ne se trouve dans aucun secteur de collecte connu."
     },

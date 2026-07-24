@@ -3,15 +3,23 @@
     "step": {
       "user": {
         "title": "Rueil-Malmaison waste collection",
-        "description": "Enter your address to determine your collection days.",
+        "description": "Enter your address in Rueil-Malmaison (include the house number for a precise match). No need to add the city or postal code.",
         "data": {
           "address": "Address"
+        }
+      },
+      "select": {
+        "title": "Confirm your address",
+        "description": "Pick your address from the list. To search again, edit the Address field and submit.",
+        "data": {
+          "address": "Address",
+          "choice": "Matched address"
         }
       }
     },
     "error": {
-      "geocode_error": "Could not geocode the address. Please try again.",
-      "address_not_found": "Address not found. Add the street and city.",
+      "geocode_error": "Could not reach the address service. Please try again.",
+      "address_not_found": "No address found in Rueil for this input. Add the street and number.",
       "api_error": "The Hauts-de-Seine API is unreachable. Try again later.",
       "outside_zone": "This address is not within any known collection sector."
     },
