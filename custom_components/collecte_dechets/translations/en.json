@@ -19,9 +19,7 @@
     },
     "error": {
       "geocode_error": "Could not reach the address service. Please try again.",
-      "address_not_found": "No address found in Rueil for this input. Add the street and number.",
-      "api_error": "The Hauts-de-Seine API is unreachable. Try again later.",
-      "outside_zone": "This address is not within any known collection sector."
+      "address_not_found": "No address found in Rueil for this input. Add the street and number."
     },
     "abort": {
       "already_configured": "This address is already configured."

@@ -19,9 +19,7 @@
     },
     "error": {
       "geocode_error": "Impossible de contacter le service d'adresses. Réessayez.",
-      "address_not_found": "Aucune adresse trouvée à Rueil pour cette saisie. Précisez la rue et le numéro.",
-      "api_error": "L'API des Hauts-de-Seine est injoignable. Réessayez plus tard.",
-      "outside_zone": "Cette adresse ne se trouve dans aucun secteur de collecte connu."
+      "address_not_found": "Aucune adresse trouvée à Rueil pour cette saisie. Précisez la rue et le numéro."
     },
     "abort": {
       "already_configured": "Cette adresse est déjà configurée."

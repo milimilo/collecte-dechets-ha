@@ -8,18 +8,10 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import (
-    CONF_ADDRESS,
-    CONF_LAT,
-    CONF_LON,
-    DATASET_URL,
-    DOMAIN,
-    GEOCODE_URL,
-    VALIDATION_DATASET,
-)
-from .helpers import get_geometry, point_in_geometry
+from .const import CONF_ADDRESS, CONF_LAT, CONF_LON, DOMAIN, GEOCODE_URL
 
-# Code INSEE de Rueil-Malmaison : restreint les suggestions à la commune.
+# Code INSEE de Rueil-Malmaison : restreint les suggestions à la commune,
+# ce qui garantit que toute adresse choisie est bien à Rueil.
 RUEIL_CITYCODE = "92063"
 CONF_CHOICE = "choice"
 
@@ -55,21 +47,6 @@ class CollecteDechetsConfigFlow(ConfigFlow, domain=DOMAIN):
             if label and coords:
                 suggestions[label] = (coords[0], coords[1])
         return suggestions
-
-    async def _in_collection_zone(self, lon: float, lat: float) -> bool:
-        """Vérifie que le point tombe dans un secteur de collecte de Rueil."""
-        session = async_get_clientsession(self.hass)
-        async with session.get(
-            DATASET_URL.format(dataset=VALIDATION_DATASET),
-            params={"limit": 100, "select": "geo_shape"},
-            timeout=aiohttp.ClientTimeout(total=30),
-        ) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-        return any(
-            point_in_geometry(lon, lat, get_geometry(rec.get("geo_shape")))
-            for rec in data.get("results", [])
-        )
 
     def _select_schema(self, query: str) -> vol.Schema:
         labels = list(self._suggestions)
@@ -128,29 +105,23 @@ class CollecteDechetsConfigFlow(ConfigFlow, domain=DOMAIN):
                         self._suggestions = suggestions
             else:
                 # Texte inchangé → on valide l'adresse choisie.
+                # La recherche étant déjà restreinte à Rueil (citycode),
+                # aucun contrôle de secteur supplémentaire n'est nécessaire.
                 choice = user_input.get(CONF_CHOICE)
                 if choice not in self._suggestions:
                     errors[CONF_CHOICE] = "address_not_found"
                 else:
                     lon, lat = self._suggestions[choice]
-                    try:
-                        in_zone = await self._in_collection_zone(lon, lat)
-                    except Exception:  # noqa: BLE001
-                        errors["base"] = "api_error"
-                    else:
-                        if not in_zone:
-                            errors[CONF_CHOICE] = "outside_zone"
-                        else:
-                            await self.async_set_unique_id(f"{lat:.5f}_{lon:.5f}")
-                            self._abort_if_unique_id_configured()
-                            return self.async_create_entry(
-                                title=choice,
-                                data={
-                                    CONF_ADDRESS: choice,
-                                    CONF_LAT: lat,
-                                    CONF_LON: lon,
-                                },
-                            )
+                    await self.async_set_unique_id(f"{lat:.5f}_{lon:.5f}")
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title=choice,
+                        data={
+                            CONF_ADDRESS: choice,
+                            CONF_LAT: lat,
+                            CONF_LON: lon,
+                        },
+                    )
 
         return self.async_show_form(
             step_id="select",

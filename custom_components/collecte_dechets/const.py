@@ -47,6 +47,3 @@ FLOWS: dict[str, dict[str, str]] = {
         "icon": "mdi:bottle-wine",
     },
 }
-
-# Flux utilisé pour valider qu'une adresse est bien couverte (couvre toute la commune)
-VALIDATION_DATASET = FLOWS["ordures_menageres"]["dataset"]
