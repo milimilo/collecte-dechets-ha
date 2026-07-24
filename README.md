@@ -1,7 +1,8 @@
 # Collecte des déchets Rueil-Malmaison — intégration Home Assistant
 
 Affiche les **prochaines collectes de déchets** selon votre adresse à
-Rueil-Malmaison (92), pour les 5 flux collectés en porte-à-porte.
+Rueil-Malmaison (92), pour les 5 flux (ordures ménagères, emballages, verre,
+encombrants, déchets verts) collectés en porte-à-porte.
 
 Les données proviennent de l'[open data du Département des Hauts-de-Seine](https://opendata.hauts-de-seine.fr/).
 Vous saisissez votre adresse une seule fois à la configuration : l'intégration
