@@ -35,21 +35,29 @@ MONTHS = {
 
 NO_COLLECTION = ("pas de collecte", "", "aucune")
 
-FR_DAYS_ABBR = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."]
-FR_MONTHS_ABBR = [
+FR_DAYS = [
+    "lundi",
+    "mardi",
+    "mercredi",
+    "jeudi",
+    "vendredi",
+    "samedi",
+    "dimanche",
+]
+FR_MONTHS = [
     "",
-    "janv.",
-    "févr.",
+    "janvier",
+    "février",
     "mars",
-    "avr.",
+    "avril",
     "mai",
     "juin",
-    "juil.",
+    "juillet",
     "août",
-    "sept.",
-    "oct.",
-    "nov.",
-    "déc.",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre",
 ]
 
 
@@ -66,7 +74,7 @@ def relative_label(day: "date | None", today: "date | None" = None) -> str:
         return "Demain"
     if delta == 2:
         return "Après-demain"
-    return f"{FR_DAYS_ABBR[day.weekday()]} {day.day} {FR_MONTHS_ABBR[day.month]}"
+    return f"{FR_DAYS[day.weekday()]} {day.day} {FR_MONTHS[day.month]}"
 
 
 # --------------------------------------------------------------------------- #
