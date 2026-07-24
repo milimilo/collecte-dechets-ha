@@ -1,5 +1,5 @@
 {
-  "domain": "dechets_verts_rueil",
+  "domain": "collecte_dechets",
   "name": "Collecte des déchets Rueil-Malmaison",
   "version": "0.1.0",
   "config_flow": true,

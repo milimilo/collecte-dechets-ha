@@ -30,11 +30,7 @@ Un appareil **« Rueil-Malmaison »** regroupant :
 
 ## Installation via HACS
 
-### 1. Publier le dépôt (une fois)
-
-Le code est hébergé sur `https://github.com/milimilo/collecte-dechets-ha`.
-
-### 2. Ajouter le dépôt personnalisé dans HACS
+### 1. Ajouter le dépôt personnalisé dans HACS
 
 1. HACS → menu ⋮ en haut à droite → **Dépôts personnalisés**
 2. URL : `https://github.com/milimilo/collecte-dechets-ha`
@@ -42,19 +38,19 @@ Le code est hébergé sur `https://github.com/milimilo/collecte-dechets-ha`.
 4. Cherchez « Collecte des déchets Rueil-Malmaison » → **Télécharger**
 5. **Redémarrez Home Assistant**
 
-### 3. Configurer
+### 2. Configurer
 
 **Paramètres → Appareils et services → Ajouter une intégration** →
 « Collecte des déchets Rueil-Malmaison » → saisissez votre adresse.
 
 ## Installation manuelle (sans HACS)
 
-Copiez le dossier `custom_components/dechets_verts_rueil/` dans le dossier
+Copiez le dossier `custom_components/collecte_dechets/` dans le dossier
 `config/custom_components/` de votre Home Assistant, puis redémarrez.
 
 ## Notes
 
-- Couvre uniquement Rueil-Malmaison (jeux de données de SIREN `219200631`).
+- Couvre uniquement Rueil-Malmaison.
 - Rafraîchissement toutes les 12 h ; aucune clé API requise.
 - « Moment = Soir » signifie collecte le soir même : sortez le bac dans l'après-midi.
 - Hors saison, le capteur des déchets verts pointe automatiquement vers la

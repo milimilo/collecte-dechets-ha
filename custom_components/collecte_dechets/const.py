@@ -1,6 +1,6 @@
 """Constantes de l'intégration Collecte des déchets Rueil-Malmaison."""
 
-DOMAIN = "dechets_verts_rueil"
+DOMAIN = "collecte_dechets"
 
 # Modèle d'URL de l'API Opendatasoft du Département des Hauts-de-Seine
 DATASET_URL = (
