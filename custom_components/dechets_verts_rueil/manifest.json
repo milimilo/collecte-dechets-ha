@@ -3,9 +3,9 @@
   "name": "Déchets verts Rueil-Malmaison",
   "version": "1.0.0",
   "config_flow": true,
-  "documentation": "https://github.com/VOTRE_COMPTE/ha-dechets-verts-rueil",
-  "issue_tracker": "https://github.com/VOTRE_COMPTE/ha-dechets-verts-rueil/issues",
-  "codeowners": ["@VOTRE_COMPTE"],
+  "documentation": "https://github.com/milimilo/ha-dechets-verts-rueil",
+  "issue_tracker": "https://github.com/milimilo/ha-dechets-verts-rueil/issues",
+  "codeowners": ["@milimilo"],
   "iot_class": "cloud_polling",
   "integration_type": "service",
   "requirements": []

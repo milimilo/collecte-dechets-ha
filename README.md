@@ -22,14 +22,13 @@ Un appareil « Déchets verts » avec :
 
 ### 1. Publier le dépôt (une fois)
 
-HACS installe depuis un dépôt GitHub. Créez un dépôt (ex. `ha-dechets-verts-rueil`)
-et poussez-y le contenu de ce dossier. Remplacez `VOTRE_COMPTE` par votre pseudo
-GitHub dans `custom_components/dechets_verts_rueil/manifest.json`.
+HACS installe depuis un dépôt GitHub. Le code est hébergé sur
+`https://github.com/milimilo/ha-dechets-verts-rueil`.
 
 ### 2. Ajouter le dépôt personnalisé dans HACS
 
 1. HACS → menu ⋮ en haut à droite → **Dépôts personnalisés**
-2. URL : `https://github.com/VOTRE_COMPTE/ha-dechets-verts-rueil`
+2. URL : `https://github.com/milimilo/ha-dechets-verts-rueil`
 3. Type : **Intégration** → **Ajouter**
 4. Cherchez « Déchets verts Rueil-Malmaison » dans HACS → **Télécharger**
 5. **Redémarrez Home Assistant**
